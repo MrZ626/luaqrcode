@@ -763,34 +763,13 @@ local function add_alignment_pattern( tab_x )
 		for y=1,#ap do
 			-- we must not put an alignment pattern on top of the positioning pattern
 			if not (x == 1 and y == 1 or x == #ap and y == 1 or x == 1 and y == #ap ) then
-				pos_x = ap[x] + 1
-				pos_y = ap[y] + 1
-				tab_x[pos_x][pos_y] = 2
-				tab_x[pos_x+1][pos_y] = -2
-				tab_x[pos_x-1][pos_y] = -2
-				tab_x[pos_x+2][pos_y] =  2
-				tab_x[pos_x-2][pos_y] =  2
-				tab_x[pos_x  ][pos_y - 2] = 2
-				tab_x[pos_x+1][pos_y - 2] = 2
-				tab_x[pos_x-1][pos_y - 2] = 2
-				tab_x[pos_x+2][pos_y - 2] = 2
-				tab_x[pos_x-2][pos_y - 2] = 2
-				tab_x[pos_x  ][pos_y + 2] = 2
-				tab_x[pos_x+1][pos_y + 2] = 2
-				tab_x[pos_x-1][pos_y + 2] = 2
-				tab_x[pos_x+2][pos_y + 2] = 2
-				tab_x[pos_x-2][pos_y + 2] = 2
-
-				tab_x[pos_x  ][pos_y - 1] = -2
-				tab_x[pos_x+1][pos_y - 1] = -2
-				tab_x[pos_x-1][pos_y - 1] = -2
-				tab_x[pos_x+2][pos_y - 1] =  2
-				tab_x[pos_x-2][pos_y - 1] =  2
-				tab_x[pos_x  ][pos_y + 1] = -2
-				tab_x[pos_x+1][pos_y + 1] = -2
-				tab_x[pos_x-1][pos_y + 1] = -2
-				tab_x[pos_x+2][pos_y + 1] =  2
-				tab_x[pos_x-2][pos_y + 1] =  2
+				pos_x,pos_y=ap[x]+1,ap[y]+1
+				for dy=-2,2 do
+					for dx=-2,2 do
+						-- form the pattern with checking chebyshev distance instead of hardcoding
+						tab_x[pos_x+dx][pos_y+dy]=math.max(math.abs(dx),math.abs(dy))%2==0 and 2 or -2
+					end
+				end
 			end
 		end
 	end
