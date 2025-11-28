@@ -400,9 +400,9 @@ local generator_polynomial = {
 -- Turn a binary string of length 8*x into a table size x of numbers.
 local function convert_bitstring_to_bytes(data)
 	local msg = {}
-	string.gsub(data,"(........)",function(x)
-		msg[#msg+1] = tonumber(x,2)
-	end)
+	for i=1, #data / 8 do
+		msg[i] = tonumber(string.sub(data,(i - 1) * 8 + 1,i * 8),2)
+	end
 	return msg
 end
 
@@ -1033,10 +1033,11 @@ local function add_data_to_matrix(matrix,data,mask)
 	local dir = "up"
 	local byte_number = 0
 	x,y = size,size
-	string.gsub(data,".?.?.?.?.?.?.?.?",function ( byte )
+	for j=1,#data,8 do
+		local bytes= string.sub(data,j,j+7)
 		byte_number = byte_number + 1
-		positions,x,y,dir = get_next_free_positions(matrix,x,y,dir,byte)
-		for i=1,#byte do
+		positions,x,y,dir = get_next_free_positions(matrix,x,y,dir,bytes)
+		for i=1,#bytes do
 			_x = positions[i][1]
 			_y = positions[i][2]
 			m = get_pixel_with_mask(mask,_x,_y,string.sub(byte,i,i))
@@ -1046,7 +1047,7 @@ local function add_data_to_matrix(matrix,data,mask)
 				matrix[_x][_y] = m
 			end
 		end
-	end)
+	end
 end
 
 
