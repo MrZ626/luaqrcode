@@ -902,13 +902,12 @@ end
 -- Parameter mask is 0-7 (-1 for 'no mask'). x and y are 1-based coordinates,
 -- 1,1 = upper left. value must be 0 or 1.
 local function get_pixel_with_mask(mask,x,y,value)
-	x = x - 1
-	y = y - 1
-	local invert = false
-	-- test purpose only:
-	if mask == -1 then -- luacheck: ignore
-		-- ignore, no masking applied
-	elseif mask == 0 then
+	-- test purpose only, no mask applied
+	if mask == -1 then return value==0 and -1 or 1 end
+
+	x, y = x - 1, y - 1
+	local invert
+	if mask == 0 then
 		invert = (x + y) % 2 == 0
 	elseif mask == 1 then
 		invert = y % 2 == 0
@@ -927,6 +926,7 @@ local function get_pixel_with_mask(mask,x,y,value)
 	else
 		assert(false,"This can't happen (mask must be <= 7)")
 	end
+	-- add 2nd == as boolean XNOR
 	return (value==0)==invert and 1 or -1
 end
 
@@ -995,8 +995,7 @@ local function add_data_to_matrix(matrix,data,mask)
 		byte_number = byte_number + 1
 		positions,x,y,dir = get_next_free_positions(matrix,x,y,dir,bytes)
 		for i=1,#bytes do
-			_x = positions[i][1]
-			_y = positions[i][2]
+			_x, _y = positions[i][1], positions[i][2]
 			m = get_pixel_with_mask(mask,_x,_y,byte(bytes,i)-48) -- "0" = 48, "1" = 49
 			if debugging then
 				matrix[_x][_y] = m * (i + 10)
