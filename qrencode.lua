@@ -895,7 +895,7 @@ end
 
 -- Return 1 (black) or -1 (blank) depending on the mask, value and position.
 -- Parameter mask is 0-7 (-1 for 'no mask'). x and y are 1-based coordinates,
--- 1,1 = upper left. tonumber(value) must be 0 or 1.
+-- 1,1 = upper left. value must be 0 or 1.
 local function get_pixel_with_mask( mask, x,y,value )
 	x = x - 1
 	y = y - 1
@@ -922,15 +922,8 @@ local function get_pixel_with_mask( mask, x,y,value )
 	else
 		assert(false,"This can't happen (mask must be <= 7)")
 	end
-	if invert then
-		-- value = 1? -> -1, value = 0? -> 1
-		return 1 - 2 * tonumber(value)
-	else
-		-- value = 1? -> 1, value = 0? -> -1
-		return -1 + 2*tonumber(value)
-	end
+	return (value==0)==invert and 1 or -1
 end
-
 
 -- We need up to 8 positions in the matrix. Only the last few bits may be less then 8.
 -- The function returns a table of (up to) 8 entries with subtables where
@@ -999,7 +992,7 @@ local function add_data_to_matrix(matrix,data,mask)
 		for i=1,#bytes do
 			_x = positions[i][1]
 			_y = positions[i][2]
-			m = get_pixel_with_mask(mask,_x,_y,string.sub(byte,i,i))
+			m = get_pixel_with_mask(mask,_x,_y,string.byte(bytes,i)-48) -- "0" = 48, "1" = 49
 			if debugging then
 				matrix[_x][_y] = m * (i + 10)
 			else
