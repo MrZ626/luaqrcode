@@ -51,10 +51,11 @@ local max,min=math.max,math.min
 local floor,ceil,abs=math.floor,math.ceil,math.abs
 local byte,sub,rep=string.byte,string.sub,string.rep
 local gsub,match,format=string.gsub,string.match,string.format
+local debugging=debugging
 
 -- Calculate bitwise xor of bytes m and n. 0 <= m,n <= 256.
-local function bit_xor(a, b)
-	local result=0
+local function bit_xor(a,b)
+	local result = 0
 	for n=0,7 do
 		if (a + b) % 2 == 1 then result = result + 2^n end
 		a, b = floor(a / 2), floor(b / 2)
@@ -70,8 +71,8 @@ local function decToOct(d) return decToOctTable[d] end
 -- Return the binary representation of the number x with the width of `digits`.
 local function binary(x,digits)
 	local s = format("%o",x) -- dec to oct
-	s = gsub(s, "(.)",decToOct) -- oct to bin
-	s = gsub(s,"^0+", "") -- remove leading 0s
+	s = gsub(s,"(.)",decToOct) -- oct to bin
+	s = gsub(s,"^0+","") -- remove leading 0s
 	return rep("0",digits - #s) .. s
 end
 
@@ -123,7 +124,7 @@ end
 -- The capacity (number of codewords) of each version (1-40) for error correction levels 1-4 (LMQH).
 -- The higher the ec level, the lower the capacity of the version. Taken from spec, tables 7-11.
 local capacity = {
-  {  19,   16,   13,	9},{  34,   28,   22,   16},{  55,   44,   34,   26},{  80,   64,   48,   36},
+  {  19,   16,   13,    9},{  34,   28,   22,   16},{  55,   44,   34,   26},{  80,   64,   48,   36},
   { 108,   86,   62,   46},{ 136,  108,   76,   60},{ 156,  124,   88,   66},{ 194,  154,  110,   86},
   { 232,  182,  132,  100},{ 274,  216,  154,  122},{ 324,  254,  180,  140},{ 370,  290,  206,  158},
   { 428,  334,  244,  180},{ 461,  365,  261,  197},{ 523,  415,  295,  223},{ 589,  453,  325,  253},
@@ -235,7 +236,7 @@ end
 
 --- Step 2: Encode data
 --- ===================
-
+---
 --- There are several ways to encode the data. We currently support only numeric, alphanumeric and binary.
 --- We already chose the encoding (a.k.a. mode) in the first step, so we need to apply the mode to the
 --- codeword.
@@ -255,7 +256,7 @@ local asciitbl = {
 
 -- Return a binary representation of the numeric string `str`. This must contain only digits 0-9.
 local function encode_string_numeric(str)
-	local encodebuffer={}
+	local encodebuffer = {}
 	for i = 1, #str, 3 do
 		local a = sub(str,i,i+2)
 		-- #a is 1, 2, or 3, so bits are 4, 7, or 10
@@ -267,7 +268,7 @@ end
 -- Return a binary representation of the alphanumeric string `str`. This must contain only
 -- digits 0-9, uppercase letters A-Z, space and the following chars: $%*./:+-.
 local function encode_string_ascii(str)
-	local encodebuffer={}
+	local encodebuffer = {}
 	local int
 	local b1, b2
 	for i = 1, #str, 2 do
@@ -425,7 +426,7 @@ end
 --- These converter functions use the log/antilog table above.
 --- We could have created the table programatically, but I like fixed tables.
 -- Convert polynominal in int notation to alpha notation.
-local function convert_to_alpha( tab )
+local function convert_to_alpha(tab)
 	local new_tab = {}
 	for i=0,#tab do
 		new_tab[i] = int_alpha[tab[i]]
@@ -609,7 +610,7 @@ local remainder = {0, 7, 7, 7, 7, 7, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 4
 -- The given data can be a string of 0's and 1' (with #string mod 8 == 0).
 -- Alternatively the data can be a table of codewords. The number of codewords
 -- must match the capacity of the qr code.
-local function arrange_codewords_and_calculate_ec( version,ec_level,data )
+local function arrange_codewords_and_calculate_ec(version,ec_level,data)
 	if type(data)=="table" then
 		local tmp = ""
 		for i=1,#data do
@@ -682,7 +683,6 @@ end
 ---	     2 = black by mandatory pattern,
 ---	    -1 = blank by data,
 ---	     1 = black by data
----
 ---
 --- To prepare the _empty_, we add positioning, alingment and timing patters.
 
@@ -761,7 +761,7 @@ local alignment_pattern = {
 ---     X X X
 ---     X   X
 ---     XXXXX
-local function add_alignment_pattern( tab_x )
+local function add_alignment_pattern(tab_x)
 	local version = (#tab_x - 17) / 4
 	local ap = alignment_pattern[version]
 	local pos_x, pos_y
@@ -796,14 +796,14 @@ local typeinfo = {
 
 -- The typeinfo is a mixture of mask and ec level information and is
 -- added twice to the qr code, one horizontal, one vertical.
-local function add_typeinfo_to_matrix( matrix,ec_level,mask )
+local function add_typeinfo_to_matrix(matrix,ec_level,mask)
 	local ec_mask_type = typeinfo[ec_level][mask]
 
 	local bit
 	-- vertical from bottom to top
 	for i=1,7 do
 		bit = sub(ec_mask_type,i,i)
-		fill_matrix_position(matrix, bit, 9, #matrix - i + 1)
+		fill_matrix_position(matrix,bit,9,#matrix - i + 1)
 	end
 	for i=8,9 do
 		bit = sub(ec_mask_type,i,i)
@@ -849,7 +849,7 @@ local function add_version_information(matrix,version)
 	for i=1,#bitstring do
 		bit = sub(bitstring,i,i)
 		x = start_x + (i - 1) % 3
-		y = start_y + floor( (i - 1) / 3 )
+		y = start_y + floor((i - 1) / 3)
 		fill_matrix_position(matrix,bit,x,y)
 	end
 
@@ -858,18 +858,17 @@ local function add_version_information(matrix,version)
 	start_y = size - 10
 	for i=1,#bitstring do
 		bit = sub(bitstring,i,i)
-		x = start_x + floor( (i - 1) / 3 )
+		x = start_x + floor((i - 1) / 3)
 		y = start_y + (i - 1) % 3
 		fill_matrix_position(matrix,bit,x,y)
 	end
 end
 
 --- Now it's time to use the methods above to create a prefilled matrix for the given mask
-local function prepare_matrix_with_mask( version,ec_level, mask )
-	local size
+local function prepare_matrix_with_mask(version,ec_level,mask)
+	local size = version * 4 + 17
 	local tab_x = {}
 
-	size = version * 4 + 17
 	for i=1,size do
 		tab_x[i]={}
 		for j=1,size do
@@ -902,7 +901,7 @@ end
 -- Return 1 (black) or -1 (blank) depending on the mask, value and position.
 -- Parameter mask is 0-7 (-1 for 'no mask'). x and y are 1-based coordinates,
 -- 1,1 = upper left. value must be 0 or 1.
-local function get_pixel_with_mask( mask, x,y,value )
+local function get_pixel_with_mask(mask,x,y,value)
 	x = x - 1
 	y = y - 1
 	local invert = false
@@ -992,7 +991,7 @@ local function add_data_to_matrix(matrix,data,mask)
 	local byte_number = 0
 	x,y = size,size
 	for j=1,#data,8 do
-		local bytes= sub(data,j,j+7)
+		local bytes = sub(data,j,j+7)
 		byte_number = byte_number + 1
 		positions,x,y,dir = get_next_free_positions(matrix,x,y,dir,bytes)
 		for i=1,#bytes do
@@ -1081,9 +1080,10 @@ local function calculate_penalty(matrix)
 			-- 2: Block of modules in same color
 			-- -----------------------------------
 			-- Blocksize = m × n  -> 3 × (m-1) × (n-1)
-			if (y < size - 1) and ( x < size - 1) and ( (matrix[x][y] < 0 and matrix[x+1][y] < 0 and matrix[x][y+1] < 0 and matrix[x+1][y+1] < 0) or (matrix[x][y] > 0 and matrix[x+1][y] > 0 and matrix[x][y+1] > 0 and matrix[x+1][y+1] > 0) ) then
-				penalty2 = penalty2 + 3
-			end
+			if (y < size - 1) and (x < size - 1) and (
+				(matrix[x][y] < 0 and matrix[x+1][y] < 0 and matrix[x][y+1] < 0 and matrix[x+1][y+1] < 0) or
+				(matrix[x][y] > 0 and matrix[x+1][y] > 0 and matrix[x][y+1] > 0 and matrix[x+1][y+1] > 0)
+			) then penalty2 = penalty2 + 3 end
 
 			-- 3: 1:1:3:1:1 ratio (dark:light:dark:light:dark) pattern in row/column
 			-- ------------------------------------------------------------------
@@ -1132,7 +1132,7 @@ local function calculate_penalty(matrix)
 	-- 4: Proportion of dark modules in entire symbol
 	-- ----------------------------------------------
 	-- 50 ± (5 × k)% to 50 ± (5 × (k + 1))% -> 10 × k
-	local dark_ratio = number_of_dark_cells / ( size * size )
+	local dark_ratio = number_of_dark_cells / (size * size)
 	local penalty4 = floor(abs(dark_ratio * 100 - 50)) * 2
 	return penalty1 + penalty2 + penalty3 + penalty4
 end
@@ -1176,7 +1176,7 @@ end
 -- Return (success): true, number matrix (only has ±1&±2, positive means black, ±2 means mandatory, in case if you didn't read comments above)
 -- Return (failed): false, error message
 -- If ec_level or mode is given, use the ones for generating the qrcode. (mode option is not implemented yet, but it will be determined automatically)
-local function qrcode( str, ec_level, _mode ) -- luacheck: no unused args
+local function qrcode(str,ec_level,_mode) -- luacheck: no unused args
 	local arranged_data, version, data_raw, mode, len_bitstring
 	version, ec_level, data_raw, mode, len_bitstring = get_version_eclevel_mode_bistringlength(str,ec_level)
 	data_raw = data_raw .. len_bitstring
