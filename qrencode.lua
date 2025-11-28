@@ -56,17 +56,17 @@ local function bit_xor(a, b)
 	return result
 end
 
+local decToOctTable = {
+	["0"]="000",["1"]="001",["2"]="010",["3"]="011",
+	["4"]="100",["5"]="101",["6"]="110",["7"]="111",
+}
+local function decToOct(d) return decToOctTable[d] end
 -- Return the binary representation of the number x with the width of `digits`.
 local function binary(x,digits)
-  local s=string.format("%o",x)
-  local a={["0"]="000",["1"]="001", ["2"]="010",["3"]="011",
-		   ["4"]="100",["5"]="101", ["6"]="110",["7"]="111"}
-  s=string.gsub(s,"(.)",function (d) return a[d] end)
-  -- remove leading 0s
-  s = string.gsub(s,"^0*(.*)$","%1")
-  local fmtstring = string.format("%%%ds",digits)
-  local ret = string.format(fmtstring,s)
-  return string.gsub(ret," ","0")
+	local s = string.format("%o",x) -- dec to oct
+	s = string.gsub(s, "(.)",decToOct) -- oct to bin
+	s = string.gsub(s,"^0+", "") -- remove leading 0s
+	return string.rep("0",digits - #s) .. s
 end
 
 -- A small helper function for add_typeinfo_to_matrix() and add_version_information()
