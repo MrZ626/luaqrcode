@@ -255,18 +255,19 @@ local asciitbl = {
 
 -- Return a binary representation of the numeric string `str`. This must contain only digits 0-9.
 local function encode_string_numeric(str)
-	local bitstring = ""
+	local encodebuffer={}
 	for i = 1, #str, 3 do
 		local a = sub(str,i,i+2)
-		bitstring = bitstring .. binary(tonumber(a), #a * 3 + 1)
+		-- #a is 1, 2, or 3, so bits are 4, 7, or 10
+		encodebuffer[#encodebuffer+1]=binary(tonumber(a), #a * 3 + 1)
 	end
-	return bitstring
+	return table.concat(encodebuffer)
 end
 
 -- Return a binary representation of the alphanumeric string `str`. This must contain only
 -- digits 0-9, uppercase letters A-Z, space and the following chars: $%*./:+-.
 local function encode_string_ascii(str)
-	local bitstring = ""
+	local encodebuffer={}
 	local int
 	local b1, b2
 	for i = 1, #str, 2 do
@@ -275,24 +276,24 @@ local function encode_string_ascii(str)
 			b1 = asciitbl[byte(sub(a,1,1))]
 			b2 = asciitbl[byte(sub(a,2,2))]
 			int = b1 * 45 + b2
-			bitstring = bitstring .. binary(int,11)
+			encodebuffer[#encodebuffer+1] = binary(int,11)
 		else
 			int = asciitbl[byte(a)]
-			bitstring = bitstring .. binary(int,6)
+			encodebuffer[#encodebuffer+1] = binary(int,6)
 		end
 	end
-	return bitstring
+	return table.concat(encodebuffer)
 end
 
 -- Return a bitstring representing string str in binary mode.
 -- We don't handle UTF-8 in any special way because we assume the
 -- scanner recognizes UTF-8 and displays it correctly.
 local function encode_string_binary(str)
-	local bitstring = ""
+	local encodebuffer = {}
 	for i = 1, #str do
-		bitstring = bitstring .. binary(byte(str,i),8)
+		encodebuffer[i] = binary(byte(str,i),8)
 	end
-	return bitstring
+	return table.concat(encodebuffer)
 end
 
 -- Return a bitstring representing string str in the given mode.
