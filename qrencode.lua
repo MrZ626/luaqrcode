@@ -1171,7 +1171,10 @@ end
 --- 1. Arrange data and calculate error correction code
 --- 1. Generate 8 matrices with different masks and calculate the penalty
 --- 1. Return qrcode with least penalty
--- If ec_level or mode is given, use the ones for generating the qrcode. (mode is not implemented yet)
+
+-- Return (success): true, number matrix (only has ±1&±2, positive means black, ±2 means mandatory, in case if you didn't read comments above)
+-- Return (failed): false, error message
+-- If ec_level or mode is given, use the ones for generating the qrcode. (mode option is not implemented yet, but it will be determined automatically)
 local function qrcode( str, ec_level, _mode ) -- luacheck: no unused args
 	local arranged_data, version, data_raw, mode, len_bitstring
 	version, ec_level, data_raw, mode, len_bitstring = get_version_eclevel_mode_bistringlength(str,ec_level)
