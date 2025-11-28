@@ -72,12 +72,8 @@ end
 -- A small helper function for add_typeinfo_to_matrix() and add_version_information()
 -- Add a 2 (black by default) / -2 (blank by default) to the matrix at position x,y
 -- depending on the bitstring (size 1!) where "0"=blank and "1"=black.
-local function fill_matrix_position(matrix,bitstring,x,y)
-	if bitstring == "1" then
-		matrix[x][y] = 2
-	else
-		matrix[x][y] = -2
-	end
+local function fill_matrix_position(matrix,bitstr,x,y)
+	matrix[x][y] = bitstr == "1" and 2 or -2
 end
 
 
@@ -478,11 +474,7 @@ local function calculate_error_correction(data,num_ec_codewords)
 		local exp = mp_alpha[highest_exponent]
 		for i=highest_exponent,highest_exponent - num_ec_codewords,-1 do
 			if exp ~= 256 then
-				if gp_alpha[i] + exp >= 255 then
-					gp_alpha[i] = math.fmod(gp_alpha[i] + exp,255)
-				else
-					gp_alpha[i] = gp_alpha[i] + exp
-				end
+				gp_alpha[i] = (gp_alpha[i] + exp) % 255
 			else
 				gp_alpha[i] = 256
 			end
@@ -734,22 +726,10 @@ end
 --- ### Timing patterns ###
 -- The timing patterns (two) are the dashed lines between two adjacent positioning patterns on row/column 7.
 local function add_timing_pattern(tab_x)
-	local line,col
-	line = 7
-	col = 9
-	for i=col,#tab_x - 8 do
-		if math.fmod(i,2) == 1 then
-			tab_x[i][line] = 2
-		else
-			tab_x[i][line] = -2
-		end
-	end
-	for i=col,#tab_x - 8 do
-		if math.fmod(i,2) == 1 then
-			tab_x[line][i] = 2
-		else
-			tab_x[line][i] = -2
-		end
+	local line,col=7,9
+	for i=col,#tab_x-8 do
+		tab_x[i][line] = i%2==0 and -2 or 2
+		tab_x[line][i] = i%2==0 and -2 or 2
 	end
 end
 
