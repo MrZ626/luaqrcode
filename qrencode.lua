@@ -842,7 +842,7 @@ local function add_version_information(matrix,version)
 	start_y = 1
 	for i=1,#bitstring do
 		bit = string.sub(bitstring,i,i)
-		x = start_x + math.fmod(i - 1,3)
+		x = start_x + (i - 1) % 3
 		y = start_y + math.floor( (i - 1) / 3 )
 		fill_matrix_position(matrix,bit,x,y)
 	end
@@ -853,7 +853,7 @@ local function add_version_information(matrix,version)
 	for i=1,#bitstring do
 		bit = string.sub(bitstring,i,i)
 		x = start_x + math.floor( (i - 1) / 3 )
-		y = start_y + math.fmod(i - 1,3)
+		y = start_y + (i - 1) % 3
 		fill_matrix_position(matrix,bit,x,y)
 	end
 end
@@ -904,21 +904,21 @@ local function get_pixel_with_mask( mask, x,y,value )
 	if mask == -1 then -- luacheck: ignore
 		-- ignore, no masking applied
 	elseif mask == 0 then
-		if math.fmod(x + y,2) == 0 then invert = true end
+		invert = (x + y) % 2 == 0
 	elseif mask == 1 then
-		if math.fmod(y,2) == 0 then invert = true end
+		invert = y % 2 == 0
 	elseif mask == 2 then
-		if math.fmod(x,3) == 0 then invert = true end
+		invert = x % 3 == 0
 	elseif mask == 3 then
-		if math.fmod(x + y,3) == 0 then invert = true end
+		invert = (x + y) % 3 == 0
 	elseif mask == 4 then
-		if math.fmod(math.floor(y / 2) + math.floor(x / 3),2) == 0 then invert = true end
+		invert = (math.floor(y / 2) + math.floor(x / 3)) % 2 == 0
 	elseif mask == 5 then
-		if math.fmod(x * y,2) + math.fmod(x * y,3) == 0 then invert = true end
+		invert = (x * y) % 2 + (x * y) % 3 == 0
 	elseif mask == 6 then
-		if math.fmod(math.fmod(x * y,2) + math.fmod(x * y,3),2) == 0 then invert = true end
+		invert = ((x * y) % 2 + (x * y) % 3) % 2 == 0
 	elseif mask == 7 then
-		if math.fmod(math.fmod(x * y,3) + math.fmod(x + y,2),2) == 0 then invert = true end
+		invert = ((x * y) % 3 + (x + y) % 2) % 2 == 0
 	else
 		assert(false,"This can't happen (mask must be <= 7)")
 	end
@@ -1182,8 +1182,8 @@ local function qrcode( str, ec_level, _mode ) -- luacheck: no unused args
 	data_raw = data_raw .. encode_data(str,mode)
 	data_raw = add_pad_data(version,ec_level,data_raw)
 	arranged_data = arrange_codewords_and_calculate_ec(version,ec_level,data_raw)
-	if math.fmod(#arranged_data,8) ~= 0 then
-		return false, string.format("Arranged data %% 8 != 0: data length = %d, mod 8 = %d",#arranged_data, math.fmod(#arranged_data,8))
+	if #arranged_data % 8 ~= 0 then
+		return false, string.format("Arranged data %% 8 != 0: data length = %d, mod 8 = %d",#arranged_data, #arranged_data % 8)
 	end
 	arranged_data = arranged_data .. string.rep("0",remainder[version])
 	local tab = get_matrix_with_lowest_penalty(version,ec_level,arranged_data)
