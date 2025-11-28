@@ -309,23 +309,18 @@ end
 -- Encoding the codeword is not enough. We need to make sure that
 -- the length of the binary string is equal to the number of codewords of the version.
 local function add_pad_data(version,ec_level,data)
-	local count_to_pad, missing_digits
+	local count_to_pad
 	local cpty = capacity[version][ec_level] * 8
 	count_to_pad = math.min(4,cpty - #data)
 	if count_to_pad > 0 then
 		data = data .. string.rep("0",count_to_pad)
 	end
-	if math.fmod(#data,8) ~= 0 then
-		missing_digits = 8 - math.fmod(#data,8)
-		data = data .. string.rep("0",missing_digits)
+	if #data % 8 ~= 0 then
+		data = data .. string.rep("0",8 - #data % 8)
 	end
-	assert(math.fmod(#data,8) == 0)
 	-- add "11101100" and "00010001" until enough data
-	while #data < cpty do
-		data = data .. "11101100"
-		if #data < cpty then
-			data = data .. "00010001"
-		end
+	for i=1,math.ceil((cpty-#data)/8) do
+		data = data .. (i % 2 == 1 and "11101100" or "00010001")
 	end
 	return data
 end
