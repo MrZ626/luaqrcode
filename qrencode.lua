@@ -40,6 +40,8 @@
 ---
 --- Each step is of course more or less complex and needs further description
 
+
+
 --- Helper functions
 --- ================
 ---
@@ -81,8 +83,9 @@ local function fill_matrix_position(matrix,bitstr,x,y)
 end
 
 
+
 --- Step 1: Determine version, ec level and mode for codeword
---- ========================================================
+--- =========================================================
 ---
 --- First we need to find out the version (= size) of the QR code. This depends on
 --- the input data (the mode to be used), the requested error correction level
@@ -102,8 +105,6 @@ local function get_mode(str)
 	assert(false,"never reached") -- luacheck: ignore
 	return nil
 end
-
-
 
 --- Capacity of QR codes
 --- --------------------
@@ -132,7 +133,6 @@ local capacity = {
   {1631, 1267,  911,  701},{1735, 1373,  985,  745},{1843, 1455, 1033,  793},{1955, 1541, 1115,  845},
   {2071, 1631, 1171,  901},{2191, 1725, 1231,  961},{2306, 1812, 1286,  986},{2434, 1914, 1354, 1054},
   {2566, 1992, 1426, 1096},{2702, 2102, 1502, 1142},{2812, 2216, 1582, 1222},{2956, 2334, 1666, 1276}}
-
 
 --- Return the smallest version for this codeword. If `requested_ec_level` is supplied,
 --- then the ec level (LMQH - 1,2,3,4) must be at least the requested level.
@@ -231,6 +231,8 @@ local function get_version_eclevel_mode_bistringlength(str,requested_ec_level,mo
 	return version,ec_level,binary(local_mode,4),local_mode,length_string
 end
 
+
+
 --- Step 2: Encode data
 --- ===================
 
@@ -309,9 +311,8 @@ end
 -- Encoding the codeword is not enough. We need to make sure that
 -- the length of the binary string is equal to the number of codewords of the version.
 local function add_pad_data(version,ec_level,data)
-	local count_to_pad
 	local cpty = capacity[version][ec_level] * 8
-	count_to_pad = min(4,cpty - #data)
+	local count_to_pad = min(4,cpty - #data)
 	if count_to_pad > 0 then
 		data = data .. rep("0",count_to_pad)
 	end
@@ -328,7 +329,7 @@ end
 
 
 --- Step 3: Organize data and calculate error correction code
---- =======================================================
+--- =========================================================
 --- The data in the qrcode is not encoded linearly. For example code 5-H has four blocks, the first two blocks
 --- contain 11 codewords and 22 error correction codes each, the second block contain 12 codewords and 22 ec codes each.
 --- We just take the table from the spec and don't calculate the blocks ourself. The table `ecblocks` contains this info.
@@ -593,7 +594,6 @@ local remainder = {0, 7, 7, 7, 7, 7, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 4
 -- 	return math.floor(size/8),math.fmod(size,8)
 -- end
 
-
 --- Example: Version 5-H has four data and four error correction blocks. The table above lists
 --- `2, {33,11,11},  2,{34,12,11}` for entry [5][4]. This means we take two blocks with 11 codewords
 --- and two blocks with 12 codewords, and two blocks with 33 - 11 = 22 ec codes and another
@@ -663,6 +663,8 @@ local function arrange_codewords_and_calculate_ec( version,ec_level,data )
 	until #arranged_ec == cpty_ec_bits
 	return arranged_data .. arranged_ec
 end
+
+
 
 --- Step 4: Generate 8 matrices with different masks and calculate the penalty
 --- ==========================================================================
@@ -736,7 +738,6 @@ local function add_timing_pattern(tab_x)
 		tab_x[line][i] = i%2==0 and -2 or 2
 	end
 end
-
 
 --- ### Alignment patterns ###
 --- The alignment patterns must be added to the matrix for versions > 1. The amount and positions depend on the versions and are
@@ -1006,7 +1007,6 @@ local function add_data_to_matrix(matrix,data,mask)
 	end
 end
 
-
 --- The total penalty of the matrix is the sum of four steps. The following steps are taken into account:
 ---
 --- 1. Adjacent modules in row/column in same color
@@ -1186,7 +1186,6 @@ local function qrcode( str, ec_level, _mode ) -- luacheck: no unused args
 	local tab = get_matrix_with_lowest_penalty(version,ec_level,arranged_data)
 	return true, tab
 end
-
 
 if testing then
 	return {
