@@ -45,13 +45,17 @@
 ---
 --- We start with some helper functions
 
+local max,min=math.max,math.min
+local floor,ceil,abs=math.floor,math.ceil,math.abs
+local byte,sub,rep=string.byte,string.sub,string.rep
+local gsub,match,format=string.gsub,string.match,string.format
 
 -- Calculate bitwise xor of bytes m and n. 0 <= m,n <= 256.
 local function bit_xor(a, b)
 	local result=0
 	for n=0,7 do
 		if (a + b) % 2 == 1 then result = result + 2^n end
-		a, b = math.floor(a / 2), math.floor(b / 2)
+		a, b = floor(a / 2), floor(b / 2)
 	end
 	return result
 end
@@ -63,10 +67,10 @@ local decToOctTable = {
 local function decToOct(d) return decToOctTable[d] end
 -- Return the binary representation of the number x with the width of `digits`.
 local function binary(x,digits)
-	local s = string.format("%o",x) -- dec to oct
-	s = string.gsub(s, "(.)",decToOct) -- oct to bin
-	s = string.gsub(s,"^0+", "") -- remove leading 0s
-	return string.rep("0",digits - #s) .. s
+	local s = format("%o",x) -- dec to oct
+	s = gsub(s, "(.)",decToOct) -- oct to bin
+	s = gsub(s,"^0+", "") -- remove leading 0s
+	return rep("0",digits - #s) .. s
 end
 
 -- A small helper function for add_typeinfo_to_matrix() and add_version_information()
@@ -87,10 +91,10 @@ end
 -- Return the mode for the given string `str`.
 -- See table 2 of the spec. We only support mode 1, 2 and 4.
 -- That is: numeric, alaphnumeric and binary.
-local function get_mode( str )
-	if string.match(str,"^[0-9]+$") then
+local function get_mode(str)
+	if match(str,"^[0-9]+$") then
 		return 1
-	elseif string.match(str,"^[0-9A-Z $%%*./:+-]+$") then
+	elseif match(str,"^[0-9A-Z $%%*./:+-]+$") then
 		return 2
 	else
 		return 4
@@ -146,12 +150,12 @@ local function get_version_eclevel(len,mode,requested_ec_level)
 	local tab = { {10,9,8,8},{12,11,16,10},{14,13,16,12} }
 	local minversion = 40
 	local maxec_level = requested_ec_level or 1
-	local min,max = 1, 4
+	local minlv,maxlv = 1, 4
 	if requested_ec_level and requested_ec_level >= 1 and requested_ec_level <= 4 then
-		min = requested_ec_level
-		max = requested_ec_level
+		minlv = requested_ec_level
+		maxlv = requested_ec_level
 	end
-	for ec_level=min,max do
+	for ec_level=minlv,maxlv do
 		for version=1,#capacity do
 			bits = capacity[version][ec_level] * 8
 			bits = bits - 4 -- the mode indicator
@@ -164,13 +168,13 @@ local function get_version_eclevel(len,mode,requested_ec_level)
 			end
 			modebits = bits - digits
 			if local_mode == 1 then -- numeric
-				c = math.floor(modebits * 3 / 10)
+				c = floor(modebits * 3 / 10)
 			elseif local_mode == 2 then -- alphanumeric
-				c = math.floor(modebits * 2 / 11)
+				c = floor(modebits * 2 / 11)
 			elseif local_mode == 3 then -- binary
-				c = math.floor(modebits * 1 / 8)
+				c = floor(modebits * 1 / 8)
 			else
-				c = math.floor(modebits * 1 / 13)
+				c = floor(modebits * 1 / 13)
 			end
 			if c >= len then
 				if version <= minversion then
@@ -251,7 +255,7 @@ local asciitbl = {
 local function encode_string_numeric(str)
 	local bitstring = ""
 	for i = 1, #str, 3 do
-		local a = string.sub(str,i,i+2)
+		local a = sub(str,i,i+2)
 		bitstring = bitstring .. binary(tonumber(a), #a * 3 + 1)
 	end
 	return bitstring
@@ -264,14 +268,14 @@ local function encode_string_ascii(str)
 	local int
 	local b1, b2
 	for i = 1, #str, 2 do
-		local a = string.sub(str,i,i+1)
+		local a = sub(str,i,i+1)
 		if #a == 2 then
-			b1 = asciitbl[string.byte(string.sub(a,1,1))]
-			b2 = asciitbl[string.byte(string.sub(a,2,2))]
+			b1 = asciitbl[byte(sub(a,1,1))]
+			b2 = asciitbl[byte(sub(a,2,2))]
 			int = b1 * 45 + b2
 			bitstring = bitstring .. binary(int,11)
 		else
-			int = asciitbl[string.byte(a)]
+			int = asciitbl[byte(a)]
 			bitstring = bitstring .. binary(int,6)
 		end
 	end
@@ -284,7 +288,7 @@ end
 local function encode_string_binary(str)
 	local bitstring = ""
 	for i = 1, #str do
-		bitstring = bitstring .. binary(string.byte(str,i),8)
+		bitstring = bitstring .. binary(byte(str,i),8)
 	end
 	return bitstring
 end
@@ -307,15 +311,15 @@ end
 local function add_pad_data(version,ec_level,data)
 	local count_to_pad
 	local cpty = capacity[version][ec_level] * 8
-	count_to_pad = math.min(4,cpty - #data)
+	count_to_pad = min(4,cpty - #data)
 	if count_to_pad > 0 then
-		data = data .. string.rep("0",count_to_pad)
+		data = data .. rep("0",count_to_pad)
 	end
 	if #data % 8 ~= 0 then
-		data = data .. string.rep("0",8 - #data % 8)
+		data = data .. rep("0",8 - #data % 8)
 	end
 	-- add "11101100" and "00010001" until enough data
-	for i=1,math.ceil((cpty-#data)/8) do
+	for i=1,ceil((cpty-#data)/8) do
 		data = data .. (i % 2 == 1 and "11101100" or "00010001")
 	end
 	return data
@@ -397,7 +401,7 @@ local generator_polynomial = {
 local function convert_bitstring_to_bytes(data)
 	local msg = {}
 	for i=1, #data / 8 do
-		msg[i] = tonumber(string.sub(data,(i - 1) * 8 + 1,i * 8),2)
+		msg[i] = tonumber(sub(data,(i - 1) * 8 + 1,i * 8),2)
 	end
 	return msg
 end
@@ -444,7 +448,7 @@ local function calculate_error_correction(data,num_ec_codewords)
 	elseif type(data)=="table" then
 		mp = data
 	else
-		assert(false,string.format("Unknown type for data: %s",type(data)))
+		assert(false,format("Unknown type for data: %s",type(data)))
 	end
 	local len_message = #mp
 
@@ -625,7 +629,7 @@ local function arrange_codewords_and_calculate_ec( version,ec_level,data )
 			size_datablock_bytes = blocks[2*i][2]
 			size_ecblock_bytes   = blocks[2*i][1] - blocks[2*i][2]
 			cpty_ec_bits = cpty_ec_bits + size_ecblock_bytes * 8
-			datablocks[#datablocks + 1] = string.sub(data, pos * 8 + 1,( pos + size_datablock_bytes)*8)
+			datablocks[#datablocks + 1] = sub(data, pos * 8 + 1,( pos + size_datablock_bytes)*8)
 			local tmp_tab = calculate_error_correction(datablocks[#datablocks],size_ecblock_bytes)
 			local tmp_str = ""
 			for x=1,#tmp_tab do
@@ -641,7 +645,7 @@ local function arrange_codewords_and_calculate_ec( version,ec_level,data )
 	repeat
 		for i=1,#datablocks do
 			if pos < #datablocks[i] then
-				arranged_data = arranged_data .. string.sub(datablocks[i],pos, pos + 7)
+				arranged_data = arranged_data .. sub(datablocks[i],pos, pos + 7)
 			end
 		end
 		pos = pos + 8
@@ -652,7 +656,7 @@ local function arrange_codewords_and_calculate_ec( version,ec_level,data )
 	repeat
 		for i=1,#final_ecblocks do
 			if pos < #final_ecblocks[i] then
-				arranged_ec = arranged_ec .. string.sub(final_ecblocks[i],pos, pos + 7)
+				arranged_ec = arranged_ec .. sub(final_ecblocks[i],pos, pos + 7)
 			end
 		end
 		pos = pos + 8
@@ -767,7 +771,7 @@ local function add_alignment_pattern( tab_x )
 				for dy=-2,2 do
 					for dx=-2,2 do
 						-- form the pattern with checking chebyshev distance instead of hardcoding
-						tab_x[pos_x+dx][pos_y+dy]=math.max(math.abs(dx),math.abs(dy))%2==0 and 2 or -2
+						tab_x[pos_x+dx][pos_y+dy]=max(abs(dx),abs(dy))%2==0 and 2 or -2
 					end
 				end
 			end
@@ -796,26 +800,26 @@ local function add_typeinfo_to_matrix( matrix,ec_level,mask )
 	local bit
 	-- vertical from bottom to top
 	for i=1,7 do
-		bit = string.sub(ec_mask_type,i,i)
+		bit = sub(ec_mask_type,i,i)
 		fill_matrix_position(matrix, bit, 9, #matrix - i + 1)
 	end
 	for i=8,9 do
-		bit = string.sub(ec_mask_type,i,i)
+		bit = sub(ec_mask_type,i,i)
 		fill_matrix_position(matrix,bit,9,17-i)
 	end
 	for i=10,15 do
-		bit = string.sub(ec_mask_type,i,i)
+		bit = sub(ec_mask_type,i,i)
 		fill_matrix_position(matrix,bit,9,16 - i)
 	end
 	-- horizontal, left to right
 	for i=1,6 do
-		bit = string.sub(ec_mask_type,i,i)
+		bit = sub(ec_mask_type,i,i)
 		fill_matrix_position(matrix,bit,i,9)
 	end
-	bit = string.sub(ec_mask_type,7,7)
+	bit = sub(ec_mask_type,7,7)
 	fill_matrix_position(matrix,bit,8,9)
 	for i=8,15 do
-		bit = string.sub(ec_mask_type,i,i)
+		bit = sub(ec_mask_type,i,i)
 		fill_matrix_position(matrix,bit,#matrix - 15 + i,9)
 	end
 end
@@ -841,9 +845,9 @@ local function add_version_information(matrix,version)
 	start_x = size - 10
 	start_y = 1
 	for i=1,#bitstring do
-		bit = string.sub(bitstring,i,i)
+		bit = sub(bitstring,i,i)
 		x = start_x + (i - 1) % 3
-		y = start_y + math.floor( (i - 1) / 3 )
+		y = start_y + floor( (i - 1) / 3 )
 		fill_matrix_position(matrix,bit,x,y)
 	end
 
@@ -851,8 +855,8 @@ local function add_version_information(matrix,version)
 	start_x = 1
 	start_y = size - 10
 	for i=1,#bitstring do
-		bit = string.sub(bitstring,i,i)
-		x = start_x + math.floor( (i - 1) / 3 )
+		bit = sub(bitstring,i,i)
+		x = start_x + floor( (i - 1) / 3 )
 		y = start_y + (i - 1) % 3
 		fill_matrix_position(matrix,bit,x,y)
 	end
@@ -912,7 +916,7 @@ local function get_pixel_with_mask( mask, x,y,value )
 	elseif mask == 3 then
 		invert = (x + y) % 3 == 0
 	elseif mask == 4 then
-		invert = (math.floor(y / 2) + math.floor(x / 3)) % 2 == 0
+		invert = (floor(y / 2) + floor(x / 3)) % 2 == 0
 	elseif mask == 5 then
 		invert = (x * y) % 2 + (x * y) % 3 == 0
 	elseif mask == 6 then
@@ -928,11 +932,11 @@ end
 -- We need up to 8 positions in the matrix. Only the last few bits may be less then 8.
 -- The function returns a table of (up to) 8 entries with subtables where
 -- the x coordinate is the first and the y coordinate is the second entry.
-local function get_next_free_positions(matrix,x,y,dir,byte)
+local function get_next_free_positions(matrix,x,y,dir,bytes)
 	local ret = {}
 	local count = 1
 	local mode = "right"
-	while count <= #byte do
+	while count <= #bytes do
 		if mode == "right" and matrix[x][y] == 0 then
 			ret[#ret + 1] = {x,y}
 			mode = "left"
@@ -986,13 +990,13 @@ local function add_data_to_matrix(matrix,data,mask)
 	local byte_number = 0
 	x,y = size,size
 	for j=1,#data,8 do
-		local bytes= string.sub(data,j,j+7)
+		local bytes= sub(data,j,j+7)
 		byte_number = byte_number + 1
 		positions,x,y,dir = get_next_free_positions(matrix,x,y,dir,bytes)
 		for i=1,#bytes do
 			_x = positions[i][1]
 			_y = positions[i][2]
-			m = get_pixel_with_mask(mask,_x,_y,string.byte(bytes,i)-48) -- "0" = 48, "1" = 49
+			m = get_pixel_with_mask(mask,_x,_y,byte(bytes,i)-48) -- "0" = 48, "1" = 49
 			if debugging then
 				matrix[_x][_y] = m * (i + 10)
 			else
@@ -1128,7 +1132,7 @@ local function calculate_penalty(matrix)
 	-- ----------------------------------------------
 	-- 50 ± (5 × k)% to 50 ± (5 × (k + 1))% -> 10 × k
 	local dark_ratio = number_of_dark_cells / ( size * size )
-	local penalty4 = math.floor(math.abs(dark_ratio * 100 - 50)) * 2
+	local penalty4 = floor(abs(dark_ratio * 100 - 50)) * 2
 	return penalty1 + penalty2 + penalty3 + penalty4
 end
 
@@ -1176,9 +1180,9 @@ local function qrcode( str, ec_level, _mode ) -- luacheck: no unused args
 	data_raw = add_pad_data(version,ec_level,data_raw)
 	arranged_data = arrange_codewords_and_calculate_ec(version,ec_level,data_raw)
 	if #arranged_data % 8 ~= 0 then
-		return false, string.format("Arranged data %% 8 != 0: data length = %d, mod 8 = %d",#arranged_data, #arranged_data % 8)
+		return false, format("Arranged data %% 8 != 0: data length = %d, mod 8 = %d",#arranged_data, #arranged_data % 8)
 	end
-	arranged_data = arranged_data .. string.rep("0",remainder[version])
+	arranged_data = arranged_data .. rep("0",remainder[version])
 	local tab = get_matrix_with_lowest_penalty(version,ec_level,arranged_data)
 	return true, tab
 end
