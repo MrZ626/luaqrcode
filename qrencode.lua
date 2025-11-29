@@ -458,26 +458,6 @@ local function get_generator_polynomial_adjusted(num_ec_codewords,highest_expone
 	return gp_alpha
 end
 
---- These converter functions use the log/antilog table above.
---- We could have created the table programmatically, but I like fixed tables.
--- Convert polynomial in int notation to alpha notation.
-local function convert_to_alpha(tab)
-	local new_tab = {}
-	for i=0,#tab do
-		new_tab[i] = int_alpha[tab[i]]
-	end
-	return new_tab
-end
-
--- Convert polynomial in alpha notation to int notation.
-local function convert_to_int(tab)
-	local new_tab = {}
-	for i=0,#tab do
-		new_tab[i] = alpha_int[tab[i]]
-	end
-	return new_tab
-end
-
 -- That's the heart of the error correction calculation.
 local function calculate_error_correction(data,num_ec_codewords)
 	local mp
@@ -491,9 +471,7 @@ local function calculate_error_correction(data,num_ec_codewords)
 	local len_message = #mp
 
 	local highest_exponent = len_message + num_ec_codewords - 1
-	local gp_alpha,tmp
-	local he
-	local gp_int, mp_alpha
+	local gp_alpha
 	local mp_int = {}
 	-- create message shifted to left (highest exponent)
 	for i=1,len_message do
@@ -504,8 +482,6 @@ local function calculate_error_correction(data,num_ec_codewords)
 	end
 	mp_int[0] = 0
 
-	mp_alpha = convert_to_alpha(mp_int)
-
 	while highest_exponent >= num_ec_codewords do
 		gp_alpha = get_generator_polynomial_adjusted(num_ec_codewords,highest_exponent)
 
@@ -513,7 +489,7 @@ local function calculate_error_correction(data,num_ec_codewords)
 
 		-- take the highest exponent from the message polynom (alpha) and add
 		-- it to the generator polynom
-		local exp = mp_alpha[highest_exponent]
+		local exp = int_alpha[mp_int[highest_exponent]]
 		for i=highest_exponent,highest_exponent - num_ec_codewords,-1 do
 			if exp ~= 256 then
 				gp_alpha[i] = (gp_alpha[i] + exp) % 255
@@ -525,33 +501,24 @@ local function calculate_error_correction(data,num_ec_codewords)
 			gp_alpha[i] = 256
 		end
 
-		gp_int = convert_to_int(gp_alpha)
-		mp_int = convert_to_int(mp_alpha)
-
-
-		tmp = {}
 		for i=highest_exponent,0,-1 do
-			tmp[i] = bit_xor(gp_int[i],mp_int[i])
+			mp_int[i] = bit_xor(alpha_int[gp_alpha[i]],mp_int[i])
 		end
 		-- remove leading 0's
-		he = highest_exponent
-		for i=he,0,-1 do
-			-- We need to stop if the length of the codeword is matched
-			if i < num_ec_codewords then break end
-			if tmp[i] == 0 then
-				tmp[i] = nil
-				highest_exponent = highest_exponent - 1
-			else
-				break
-			end
-		end
-		mp_int = tmp
-		mp_alpha = convert_to_alpha(mp_int)
+        for i=highest_exponent,num_ec_codewords,-1 do
+            if mp_int[i]==0 then
+                highest_exponent=i-1
+            else
+                break
+            end
+        end
+
+        if highest_exponent<num_ec_codewords then break end
 	end
 	local ret = {}
 
 	-- reverse data
-	for i=#mp_int,0,-1 do
+	for i=highest_exponent,0,-1 do
 		ret[#ret + 1] = mp_int[i]
 	end
 	return ret
