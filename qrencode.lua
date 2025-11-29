@@ -51,7 +51,6 @@ local max,min=math.max,math.min
 local floor,ceil,abs=math.floor,math.ceil,math.abs
 local byte,sub,rep=string.byte,string.sub,string.rep
 local gsub,match,format=string.gsub,string.match,string.format
-local debugging=debugging
 
 -- Calculate bitwise xor of bytes m and n. 0 <= m,n <= 256.
 local function bit_xor(a,b)
@@ -412,8 +411,8 @@ local function convert_bitstring_to_bytes(data)
 end
 
 -- Return a table that has 0's in the first entries and then the alpha
--- representation of the generator polynominal
-local function get_generator_polynominal_adjusted(num_ec_codewords,highest_exponent)
+-- representation of the generator polynomial
+local function get_generator_polynomial_adjusted(num_ec_codewords,highest_exponent)
 	local gp_alpha = {[0]=0}
 	for i=0,highest_exponent - num_ec_codewords - 1 do
 		gp_alpha[i] = 0
@@ -426,8 +425,8 @@ local function get_generator_polynominal_adjusted(num_ec_codewords,highest_expon
 end
 
 --- These converter functions use the log/antilog table above.
---- We could have created the table programatically, but I like fixed tables.
--- Convert polynominal in int notation to alpha notation.
+--- We could have created the table programmatically, but I like fixed tables.
+-- Convert polynomial in int notation to alpha notation.
 local function convert_to_alpha(tab)
 	local new_tab = {}
 	for i=0,#tab do
@@ -436,7 +435,7 @@ local function convert_to_alpha(tab)
 	return new_tab
 end
 
--- Convert polynominal in alpha notation to int notation.
+-- Convert polynomial in alpha notation to int notation.
 local function convert_to_int(tab)
 	local new_tab = {}
 	for i=0,#tab do
@@ -474,7 +473,7 @@ local function calculate_error_correction(data,num_ec_codewords)
 	mp_alpha = convert_to_alpha(mp_int)
 
 	while highest_exponent >= num_ec_codewords do
-		gp_alpha = get_generator_polynominal_adjusted(num_ec_codewords,highest_exponent)
+		gp_alpha = get_generator_polynomial_adjusted(num_ec_codewords,highest_exponent)
 
 		-- Multiply generator polynomial by first coefficient of the above polynomial
 
@@ -528,7 +527,7 @@ end
 --- Now we arrange the data into smaller chunks. This table is taken from the spec.
 -- ecblocks has 40 entries, one for each version. Each version entry has 4 entries, for each LMQH
 -- ec level. Each entry has two or four fields, the odd files are the number of repetitions for the
--- folowing block info. The first entry of the block is the total number of codewords in the block,
+-- following block info. The first entry of the block is the total number of codewords in the block,
 -- the second entry is the number of data codewords. The third is not important.
 local ecblocks = {
   {{  1,{ 26, 19, 2}                 },   {  1,{26,16, 4}},                  {  1,{26,13, 6}},                  {  1, {26, 9, 8}               }},
@@ -582,12 +581,12 @@ local remainder = {0, 7, 7, 7, 7, 7, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 4
 -- 	local len = version * 4 + 17
 -- 	local size = len^2
 -- 	local function_pattern_modules = 192 + 2 * len - 32 -- Position Adjustment pattern + timing pattern
--- 	local count_alignemnt_pattern = #alignment_pattern[version]
--- 	if count_alignemnt_pattern > 0 then
--- 		-- add 25 for each aligment pattern
--- 		function_pattern_modules = function_pattern_modules + 25 * ( count_alignemnt_pattern^2 - 3 )
--- 		-- but substract the timing pattern occupied by the aligment pattern on the top and left
--- 		function_pattern_modules = function_pattern_modules - ( count_alignemnt_pattern - 2) * 10
+-- 	local count_alignment_pattern = #alignment_pattern[version]
+-- 	if count_alignment_pattern > 0 then
+-- 		-- add 25 for each alignment pattern
+-- 		function_pattern_modules = function_pattern_modules + 25 * ( count_alignment_pattern^2 - 3 )
+-- 		-- but subtract the timing pattern occupied by the alignment pattern on the top and left
+-- 		function_pattern_modules = function_pattern_modules - ( count_alignment_pattern - 2) * 10
 -- 	end
 -- 	size = size - function_pattern_modules
 -- 	if version > 6 then
@@ -999,11 +998,7 @@ local function add_data_to_matrix(matrix,data,mask)
 		for i=1,#bytes do
 			_x, _y = positions[i][1], positions[i][2]
 			m = get_pixel_with_mask(mask,_x,_y,byte(bytes,i)-48) -- "0" = 48, "1" = 49
-			if debugging then
-				matrix[_x][_y] = m * (i + 10)
-			else
-				matrix[_x][_y] = m
-			end
+			matrix[_x][_y] = m
 		end
 	end
 end
@@ -1213,11 +1208,10 @@ if testing then
 		get_mode = get_mode,
 		get_length = get_length,
 		add_pad_data = add_pad_data,
-		get_generator_polynominal_adjusted = get_generator_polynominal_adjusted,
+		get_generator_polynominal_adjusted = get_generator_polynomial_adjusted,
 		get_pixel_with_mask = get_pixel_with_mask,
 		get_version_eclevel_mode_bistringlength = get_version_eclevel_mode_bistringlength,
 		remainder = remainder,
-		--get_capacity_remainder = get_capacity_remainder,
 		arrange_codewords_and_calculate_ec = arrange_codewords_and_calculate_ec,
 		calculate_error_correction = calculate_error_correction,
 		convert_bitstring_to_bytes = convert_bitstring_to_bytes,
