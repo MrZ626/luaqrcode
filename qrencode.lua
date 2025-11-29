@@ -660,12 +660,10 @@ local function arrange_codewords_and_calculate_ec(version,ec_level,data)
 	local final_ecblocks = {}
 	local count = 1
 	local pos = 0
-	local cpty_ec_bits = 0
 	for i=1,#blocks/2 do
 		for _=1,blocks[2*i - 1] do
 			size_datablock_bytes = blocks[2*i][2]
 			size_ecblock_bytes   = blocks[2*i][1] - blocks[2*i][2]
-			cpty_ec_bits = cpty_ec_bits + size_ecblock_bytes * 8
 			datablocks[#datablocks + 1] = sub(data, pos * 8 + 1,( pos + size_datablock_bytes)*8)
 			local tmp_tab = calculate_error_correction(datablocks[#datablocks],size_ecblock_bytes)
 			local tmp_str = {}
@@ -677,32 +675,26 @@ local function arrange_codewords_and_calculate_ec(version,ec_level,data)
 			count = count + 1
 		end
 	end
+
+	-- data
 	local arranged_data = {}
-	local arranged_length = 0
-	pos = 1
-	while arranged_length < #data do
-		for i=1,#datablocks do
-			if pos < #datablocks[i] then
-				arranged_data[#arranged_data + 1] = sub(datablocks[i],pos, pos + 7)
-				arranged_length = arranged_length + 8
-			end
+	count = 1
+	for i = 1, #datablocks[1] / 8 do
+		for j = 1, #datablocks do
+			arranged_data[count] = sub(datablocks[j], 8 * i - 7, i * 8)
+			count = count + 1
 		end
-		pos = pos + 8
 	end
+
 	-- ec
-	local arranged_ec = {}
-	local arranged_ec_length = 0
-	pos = 1
-	while arranged_ec_length < cpty_ec_bits do
-		for i=1,#final_ecblocks do
-			if pos < #final_ecblocks[i] then
-				arranged_ec[#arranged_ec + 1] = sub(final_ecblocks[i],pos, pos + 7)
-				arranged_ec_length = arranged_ec_length + 8
-			end
+	for i = 1, #final_ecblocks[1] / 8 do
+		for j = 1, #final_ecblocks do
+			arranged_data[count] = sub(final_ecblocks[j], 8 * i - 7, i * 8)
+			count = count + 1
 		end
-		pos = pos + 8
 	end
-	return concat(arranged_data) .. concat(arranged_ec)
+
+	return concat(arranged_data)
 end
 
 
