@@ -1195,6 +1195,17 @@ if testing then
 	return {
 		encode_string_numeric = encode_string_numeric,
 		encode_string_ascii = encode_string_ascii,
+		encode_string_binary = encode_string_binary,
+		encode_data = encode_data,
+		add_position_detection_patterns = add_position_detection_patterns,
+		add_timing_pattern = add_timing_pattern,
+		add_alignment_pattern = add_alignment_pattern,
+		fill_matrix_position = fill_matrix_position,
+		add_typeinfo_to_matrix = add_typeinfo_to_matrix,
+		add_version_information = add_version_information,
+		prepare_matrix_with_mask = prepare_matrix_with_mask,
+		get_next_free_positions = get_next_free_positions,
+		add_data_to_matrix = add_data_to_matrix,
 		qrcode = qrcode,
 		binary = binary,
 		get_mode = get_mode,
@@ -1209,6 +1220,8 @@ if testing then
 		calculate_error_correction = calculate_error_correction,
 		convert_bitstring_to_bytes = convert_bitstring_to_bytes,
 		bit_xor = bit_xor,
+		calculate_penalty = calculate_penalty,
+		get_matrix_and_penalty = get_matrix_and_penalty,
 	}
 end
 
