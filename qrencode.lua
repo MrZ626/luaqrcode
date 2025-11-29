@@ -929,40 +929,35 @@ end
 
 -- Return 1 (black) or -1 (blank) depending on the mask, value and position.
 -- Parameter mask is 0-7 (-1 for 'no mask'). x and y are 1-based coordinates,
--- 1,1 = upper left. tonumber(value) must be 0 or 1.
+-- 1,1 = upper left. value must be "0" or "1".
 local function get_pixel_with_mask( mask, x,y,value )
 	x = x - 1
 	y = y - 1
-	local invert = false
+	local invert
 	-- test purpose only:
 	if mask == -1 then -- luacheck: ignore
 		-- ignore, no masking applied
 	elseif mask == 0 then
-		if math.fmod(x + y,2) == 0 then invert = true end
+		invert = (x + y) % 2 == 0
 	elseif mask == 1 then
-		if math.fmod(y,2) == 0 then invert = true end
+		invert = y % 2 == 0
 	elseif mask == 2 then
-		if math.fmod(x,3) == 0 then invert = true end
+		invert = x % 3 == 0
 	elseif mask == 3 then
-		if math.fmod(x + y,3) == 0 then invert = true end
+		invert = (x + y) % 3 == 0
 	elseif mask == 4 then
-		if math.fmod(math.floor(y / 2) + math.floor(x / 3),2) == 0 then invert = true end
+		invert = (math.floor(y / 2) + math.floor(x / 3)) % 2 == 0
 	elseif mask == 5 then
-		if math.fmod(x * y,2) + math.fmod(x * y,3) == 0 then invert = true end
+		invert = (x * y) % 2 + (x * y) % 3 == 0
 	elseif mask == 6 then
-		if math.fmod(math.fmod(x * y,2) + math.fmod(x * y,3),2) == 0 then invert = true end
+		invert = ((x * y) % 2 + (x * y) % 3) % 2 == 0
 	elseif mask == 7 then
-		if math.fmod(math.fmod(x * y,3) + math.fmod(x + y,2),2) == 0 then invert = true end
+		invert = ((x * y) % 3 + (x + y) % 2) % 2 == 0
 	else
 		assert(false,"This can't happen (mask must be <= 7)")
 	end
-	if invert then
-		-- value = 1? -> -1, value = 0? -> 1
-		return 1 - 2 * tonumber(value)
-	else
-		-- value = 1? -> 1, value = 0? -> -1
-		return -1 + 2*tonumber(value)
-	end
+	-- 2nd == is used as boolean XNOR
+	return (value=="0")==invert and 1 or -1
 end
 
 
