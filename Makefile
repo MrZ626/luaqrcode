@@ -6,3 +6,6 @@ profile:
 
 test:
 	lua qrtest.lua
+	lua qrblackbox.lua
+
+
