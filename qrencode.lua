@@ -63,15 +63,17 @@ local function bit_xor(a,b)
 	return result
 end
 
-local decToOctTable = {
-	["0"]="000",["1"]="001",["2"]="010",["3"]="011",
-	["4"]="100",["5"]="101",["6"]="110",["7"]="111",
+local decToHexTable={
+    ["0"]="0000",["1"]="0001",["2"]="0010",["3"]="0011",
+	["4"]="0100",["5"]="0101",["6"]="0110",["7"]="0111",
+    ["8"]="1000",["9"]="1001",["a"]="1010",["b"]="1011",
+	["c"]="1100",["d"]="1101",["e"]="1110",["f"]="1111",
 }
-local function decToOct(d) return decToOctTable[d] end
+local function decToHex(d) return decToHexTable[d] end
 -- Return the binary representation of the number x with the width of `digits`.
 local function binary(x,digits)
-	local s = format("%o",x) -- dec to oct
-	s = gsub(s,"(.)",decToOct) -- oct to bin
+	local s = format("%x",x) -- dec to hex
+	s = gsub(s,"(.)",decToHex) -- hex to bin
 	s = gsub(s,"^0+","") -- remove leading 0s
 	return rep("0",digits - #s) .. s
 end
