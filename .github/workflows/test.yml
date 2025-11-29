@@ -20,7 +20,7 @@ jobs:
         uses: leafo/gh-actions-lua@v9
         with:
           luaVersion: ${{ matrix.luaVersion }}
-          buildCache: true
+          buildCache: false
       - name: Test
         run: |
           lua qrtest.lua

@@ -5,13 +5,10 @@ package.path = package.path .. ";./scripts/?.lua"
 local profiler = require("profiler")
 local qrencode = require("qrencode")
 
-local profiler = require("profiler")
-local qrencode = require("qrencode")
-
 
 profiler.start()
 
-for i = 1, 10 do
+for _ = 1, 10 do
   qrencode.qrcode("The quick brown fox jumps over the lazy dog.")
 end
 

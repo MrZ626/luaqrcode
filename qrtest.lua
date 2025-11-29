@@ -92,7 +92,7 @@ assert_equal(matrix[5][5],2,"fill_matrix_position black")
 qrcode.fill_matrix_position(matrix,"0",5,6)
 assert_equal(matrix[5][6],-2,"fill_matrix_position white")
 
-local matrix = new_matrix(21)
+matrix = new_matrix(21)
 qrcode.add_position_detection_patterns(matrix)
 assert_equal(matrix[1][1],2,"add_position_detection_patterns outer corner")
 assert_equal(matrix[4][2],-2,"add_position_detection_patterns inner white ring")
