@@ -921,9 +921,9 @@ local function get_pixel_with_mask(mask,x,y,value)
 	elseif mask == 5 then
 		invert = (x * y) % 2 + (x * y) % 3 == 0
 	elseif mask == 6 then
-		invert = ((x * y) % 2 + (x * y) % 3) % 2 == 0
+		invert = ((x * y) % 3 + x * y) % 2 == 0
 	elseif mask == 7 then
-		invert = ((x * y) % 3 + (x + y) % 2) % 2 == 0
+		invert = ((x * y) % 3 + x + y) % 2 == 0
 	else
 		assert(false,"This can't happen (mask must be <= 7)")
 	end
