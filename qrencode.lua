@@ -51,6 +51,8 @@ local max,min=math.max,math.min
 local floor,ceil,abs=math.floor,math.ceil,math.abs
 local byte,sub,rep=string.byte,string.sub,string.rep
 local gsub,match,format=string.gsub,string.match,string.format
+local concat = table.concat
+
 
 -- Calculate bitwise xor of bytes m and n. 0 <= m,n <= 256.
 local function bit_xor(a,b)
@@ -315,18 +317,24 @@ end
 -- the length of the binary string is equal to the number of codewords of the version.
 local function add_pad_data(version,ec_level,data)
 	local cpty = capacity[version][ec_level] * 8
-	local count_to_pad = min(4,cpty - #data)
+	local buffer = {data}
+	local buffer_len = #data
+	local count_to_pad = min(4,cpty - buffer_len)
 	if count_to_pad > 0 then
-		data = data .. rep("0",count_to_pad)
+		buffer[#buffer + 1] = rep("0",count_to_pad)
+		buffer_len = buffer_len + count_to_pad
 	end
-	if #data % 8 ~= 0 then
-		data = data .. rep("0",8 - #data % 8)
+	if buffer_len % 8 ~= 0 then
+		local missing = 8 - buffer_len % 8
+		buffer[#buffer + 1] = rep("0",missing)
+		buffer_len = buffer_len + missing
 	end
 	-- add "11101100" and "00010001" until enough data
-	for i=1,ceil((cpty-#data)/8) do
-		data = data .. (i % 2 == 1 and "11101100" or "00010001")
+	local remaining_bytes = ceil((cpty - buffer_len) / 8)
+	for i=1,remaining_bytes do
+		buffer[#buffer + 1] = i % 2 == 1 and "11101100" or "00010001"
 	end
-	return data
+	return concat(buffer)
 end
 
 
@@ -613,11 +621,11 @@ local remainder = {0, 7, 7, 7, 7, 7, 0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3, 3, 4
 -- must match the capacity of the qr code.
 local function arrange_codewords_and_calculate_ec(version,ec_level,data)
 	if type(data)=="table" then
-		local tmp = ""
+		local tmp = {}
 		for i=1,#data do
-			tmp = tmp .. binary(data[i],8)
+			tmp[i] = binary(data[i],8)
 		end
-		data = tmp
+		data = concat(tmp)
 	end
 	-- If the size of the data is not enough for the codeword, we add 0's and two special bytes until finished.
 	local blocks = ecblocks[version][ec_level]
@@ -634,37 +642,41 @@ local function arrange_codewords_and_calculate_ec(version,ec_level,data)
 			cpty_ec_bits = cpty_ec_bits + size_ecblock_bytes * 8
 			datablocks[#datablocks + 1] = sub(data, pos * 8 + 1,( pos + size_datablock_bytes)*8)
 			local tmp_tab = calculate_error_correction(datablocks[#datablocks],size_ecblock_bytes)
-			local tmp_str = ""
+			local tmp_str = {}
 			for x=1,#tmp_tab do
-				tmp_str = tmp_str .. binary(tmp_tab[x],8)
+				tmp_str[#tmp_str + 1] = binary(tmp_tab[x],8)
 			end
-			final_ecblocks[#final_ecblocks + 1] = tmp_str
+			final_ecblocks[#final_ecblocks + 1] = concat(tmp_str)
 			pos = pos + size_datablock_bytes
 			count = count + 1
 		end
 	end
-	local arranged_data = ""
+	local arranged_data = {}
+	local arranged_length = 0
 	pos = 1
-	repeat
+	while arranged_length < #data do
 		for i=1,#datablocks do
 			if pos < #datablocks[i] then
-				arranged_data = arranged_data .. sub(datablocks[i],pos, pos + 7)
+				arranged_data[#arranged_data + 1] = sub(datablocks[i],pos, pos + 7)
+				arranged_length = arranged_length + 8
 			end
 		end
 		pos = pos + 8
-	until #arranged_data == #data
+	end
 	-- ec
-	local arranged_ec = ""
+	local arranged_ec = {}
+	local arranged_ec_length = 0
 	pos = 1
-	repeat
+	while arranged_ec_length < cpty_ec_bits do
 		for i=1,#final_ecblocks do
 			if pos < #final_ecblocks[i] then
-				arranged_ec = arranged_ec .. sub(final_ecblocks[i],pos, pos + 7)
+				arranged_ec[#arranged_ec + 1] = sub(final_ecblocks[i],pos, pos + 7)
+				arranged_ec_length = arranged_ec_length + 8
 			end
 		end
 		pos = pos + 8
-	until #arranged_ec == cpty_ec_bits
-	return arranged_data .. arranged_ec
+	end
+	return concat(arranged_data) .. concat(arranged_ec)
 end
 
 
