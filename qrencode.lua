@@ -53,15 +53,51 @@ local byte,sub,rep=string.byte,string.sub,string.rep
 local gsub,match,format=string.gsub,string.match,string.format
 local concat = table.concat
 
+-- Build a fast xor helper that stays compatible across Lua versions.
+-- Prefer native bitwise operators (available in Lua 5.3+) and fall back to a
+-- precomputed 256x256 lookup table (generated once at load time). This keeps the
+-- hot path O(1) even on older Lua versions without native bit ops.
+local xor_operator
+do
+	-- Detect native bitwise operators (`~` appeared in Lua 5.3). If present,
+	-- use it directly for speed; otherwise leave xor_operator nil to trigger
+	-- the table-based fallback below.
+	local ok, res = pcall(function() return 1 ~ 2 end)
+	if ok and res then
+		xor_operator = function(a,b) return a ~ b end
+	end
+end
+
+-- Slow but portable xor used only while populating the lookup table if no native op exists.
+local function slow_xor(a,b)
+	local result = 0
+	local bitval = 1
+	while a > 0 or b > 0 do
+		if (a % 2) ~= (b % 2) then
+			result = result + bitval
+		end
+		a = floor(a / 2)
+		b = floor(b / 2)
+		bitval = bitval * 2
+	end
+	return result
+end
+
+local xor_lookup = {}
+do
+	local fn = xor_operator or slow_xor
+	for i=0,255 do
+		local row = {}
+		for j=0,255 do
+			row[j] = fn(i,j)
+		end
+		xor_lookup[i] = row
+	end
+end
 
 -- Calculate bitwise xor of bytes m and n. 0 <= m,n <= 256.
 local function bit_xor(a,b)
-	local result = 0
-	for n=0,7 do
-		if (a + b) % 2 == 1 then result = result + 2^n end
-		a, b = floor(a / 2), floor(b / 2)
-	end
-	return result
+	return xor_lookup[a][b]
 end
 
 local decToHexTable={
