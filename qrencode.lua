@@ -955,7 +955,7 @@ local function get_pixel_with_mask(mask,x,y,value)
 	elseif mask == 3 then
 		invert = (x + y) % 3 == 0
 	elseif mask == 4 then
-		invert = (floor(y / 2) + floor(x / 3)) % 2 == 0
+		invert = (x % 6 - 2.5) * (y % 4 - 1.5) > 0 -- original formula: (floor(y / 2) + floor(x / 3)) % 2 == 0
 	elseif mask == 5 then
 		invert = (x * y) % 2 + (x * y) % 3 == 0
 	elseif mask == 6 then
