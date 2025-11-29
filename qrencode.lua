@@ -54,20 +54,9 @@ local gsub,match,format=string.gsub,string.match,string.format
 local concat = table.concat
 
 -- Build a fast xor helper that stays compatible across Lua versions.
--- Prefer native bitwise operators (available in Lua 5.3+) and fall back to a
--- precomputed 256x256 lookup table (generated once at load time). This keeps the
--- hot path O(1) even on older Lua versions without native bit ops.
-local xor_operator
-do
-	-- Detect native bitwise operators (`~` appeared in Lua 5.3). If present,
-	-- use it directly for speed; otherwise leave xor_operator nil to trigger
-	-- the table-based fallback below.
-	local ok, res = pcall(function() return 1 ~ 2 end)
-	if ok and res then
-		xor_operator = function(a,b) return a ~ b end
-	end
-end
-
+-- We precompute a 256x256 lookup table once at load time using a portable
+-- arithmetic xor; the hot path is then a constant-time table lookup without
+-- requiring native bitwise operators or external bit libraries.
 -- Slow but portable xor used only while populating the lookup table if no native op exists.
 local function slow_xor(a,b)
 	local result = 0
@@ -85,7 +74,8 @@ end
 
 local xor_lookup = {}
 do
-	local fn = xor_operator or slow_xor
+	-- Always build a 256x256 table once at load time; avoids any reliance on bitwise operators.
+	local fn = slow_xor
 	for i=0,255 do
 		local row = {}
 		for j=0,255 do
