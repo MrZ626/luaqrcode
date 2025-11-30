@@ -48,7 +48,7 @@
 --- We start with some helper functions
 
 local max,min=math.max,math.min
-local floor,ceil,abs=math.floor,math.ceil,math.abs
+local floor,abs=math.floor,math.abs
 local byte,sub,rep=string.byte,string.sub,string.rep
 local gsub,match,format=string.gsub,string.match,string.format
 local concat = table.concat
@@ -356,7 +356,7 @@ local function add_pad_data(version,ec_level,data)
 		buffer_len = buffer_len + missing
 	end
 	-- add "11101100" and "00010001" until enough data
-	local remaining_bytes = ceil((cpty - buffer_len) / 8)
+	local remaining_bytes = (cpty - buffer_len) / 8 -- decimal doesn't matter
 	for i=1,remaining_bytes do
 		buffer[#buffer + 1] = i % 2 == 1 and "11101100" or "00010001"
 	end
