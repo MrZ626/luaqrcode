@@ -85,9 +85,9 @@ do
 	end
 end
 
--- Calculate bitwise xor of bytes m and n. 0 <= m,n <= 256.
-local function bit_xor(a,b)
-	return xor_lookup[a][b]
+-- Calculate bitwise xor of bytes m and n. 0 <= m,n <= 255.
+local function bit_xor(m,n)
+	return xor_lookup[m][n]
 end
 
 local decToHexTable={
