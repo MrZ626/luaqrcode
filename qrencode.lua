@@ -179,7 +179,7 @@ local function get_version_eclevel(len,mode,requested_ec_level)
 
 	local bits, digits, modebits, c
 	local tab = { {10,9,8,8},{12,11,16,10},{14,13,16,12} }
-	local minversion = 40
+	local minversion = 99 -- placeholder, must be replaced by a lower value
 	local maxec_level = requested_ec_level or 1
 	local minlv,maxlv = 1, 4
 	if requested_ec_level and requested_ec_level >= 1 and requested_ec_level <= 4 then
@@ -216,6 +216,7 @@ local function get_version_eclevel(len,mode,requested_ec_level)
 			end
 		end
 	end
+	assert(minversion<=40,"Data too long to encode in QR code")
 	return minversion, maxec_level
 end
 
@@ -946,7 +947,7 @@ local function add_data_to_matrix(matrix,data,mask)
 		if matrix[x][y]==0 then
 			matrix[x][y] = get_pixel_with_mask(mask,x,y,byte(data,ptr)-48) -- '0' = 48, '1' = 49
 			ptr = ptr + 1
-			if ptr > #data then return matrix end -- all data written, finish
+			if ptr > #data or x < 0 then return matrix end -- all data written, finish
 		end
 
 		-- Move to next cell (won't write into unavailable cell so it's fine to move 1 step each time)
