@@ -17,10 +17,10 @@ jobs:
         with:
           fetch-depth: 0
       - name: Setup ‘lua’
-        uses: leafo/gh-actions-lua@v9
+        uses: leafo/gh-actions-lua@v12
         with:
           luaVersion: ${{ matrix.luaVersion }}
-          buildCache: true
+          buildCache: false
       - name: Test
         run: |
           lua qrtest.lua

@@ -16,9 +16,23 @@ end
 testing=true
 
 
-local qrcode        = dofile("qrencode.lua")
+local qrcode = dofile("qrencode.lua")
 local tab
 local str = "HELLO WORLD"
+local almost_full_data = string.rep("1",70)
+local hello_world_version, hello_world_ec, hello_world_mode, hello_world_modebits, hello_world_lenbits
+local hello_world_arranged
+local hello_world_penalty
+local function new_matrix(size)
+	local matrix = {}
+	for i=1,size do
+		matrix[i] = {}
+		for j=1,size do
+			matrix[i][j] = 0
+		end
+	end
+	return matrix
+end
 assert_equal(qrcode.get_mode("0101"),           1,"get_encoding_byte 1")
 assert_equal(qrcode.get_mode(str),              2,"get_encoding_byte 2")
 assert_equal(qrcode.get_mode("0-9A-Z $%*./:+-"),2,"get_encoding_byte 3")
@@ -39,6 +53,9 @@ assert_equal(tab[24],0,"get_generator_polynominal_adjusted 24")
 
 tab = qrcode.convert_bitstring_to_bytes("00100000010110110000101101111000110100010111001011011100010011010100001101000000111011000001000111101100")
 assert_equal(tab[1],32,"convert_bitstring_to_bytes")
+tab = qrcode.convert_bitstring_to_bytes("1111111100000001")
+assert_equal(tab[1],255,"convert_bitstring_to_bytes 2")
+assert_equal(tab[2],1,"convert_bitstring_to_bytes 3")
 assert_equal(qrcode.bit_xor(141,43), 166,"bit_xor")
 assert_equal(qrcode.bit_xor(179,0), 179,"bit_xor")
 
@@ -54,9 +71,86 @@ assert_equal(d,2,"get_version_eclevel_mode_bistringlength 4")
 assert_equal(e,"000001011","get_version_eclevel_mode_bistringlength 5")
 
 assert_equal(qrcode.encode_string_numeric("01234567"),"000000110001010110011000011","encode string numeric")
+assert_equal(qrcode.encode_string_numeric("987654321"),"111101101110100011100101000001","encode string numeric multi groups")
+assert_equal(qrcode.encode_string_numeric("7"),"0111","encode string numeric single digit")
+assert_equal(qrcode.encode_string_numeric("42"),"0101010","encode string numeric two digits")
 assert_equal(qrcode.encode_string_ascii(str),"0110000101101111000110100010111001011011100010011010100001101","encode string ascii")
+assert_equal(qrcode.encode_string_ascii("HELLO"),"0110000101101111000110011000","encode string ascii odd length")
+assert_equal(qrcode.encode_string_ascii("AB"),"00111001101","encode string ascii even length")
+assert_equal(qrcode.encode_string_ascii("A"),"001010","encode string ascii single character")
+assert_equal(qrcode.encode_string_binary("Hi"),"0100100001101001","encode string binary")
+assert_equal(qrcode.encode_data("123",1),"0001111011","encode data numeric mode")
+assert_equal(qrcode.encode_data("HI",2),"01100001111","encode data ascii mode")
+assert_equal(qrcode.encode_data("A",4),"01000001","encode data binary mode")
+assert_equal(qrcode.add_pad_data(1,4,almost_full_data),almost_full_data .. "00","pad_data near capacity")
 assert_equal(qrcode.remainder[40],0,"get_remainder")
 assert_equal(qrcode.remainder[2],7,"get_remainder")
+
+local matrix = new_matrix(21)
+qrcode.fill_matrix_position(matrix,"1",5,5)
+assert_equal(matrix[5][5],2,"fill_matrix_position black")
+qrcode.fill_matrix_position(matrix,"0",5,6)
+assert_equal(matrix[5][6],-2,"fill_matrix_position white")
+
+matrix = new_matrix(21)
+qrcode.add_position_detection_patterns(matrix)
+assert_equal(matrix[1][1],2,"add_position_detection_patterns outer corner")
+assert_equal(matrix[4][2],-2,"add_position_detection_patterns inner white ring")
+assert_equal(matrix[3][3],2,"add_position_detection_patterns inner block")
+assert_equal(matrix[21][7],2,"add_position_detection_patterns top right edge")
+assert_equal(matrix[10][10],0,"add_position_detection_patterns untouched center")
+
+qrcode.add_timing_pattern(matrix)
+assert_equal(matrix[9][7],2,"add_timing_pattern vertical start")
+assert_equal(matrix[10][7],-2,"add_timing_pattern vertical gap")
+assert_equal(matrix[7][9],2,"add_timing_pattern horizontal start")
+assert_equal(matrix[7][10],-2,"add_timing_pattern horizontal gap")
+qrcode.add_typeinfo_to_matrix(matrix,1,0)
+assert_equal(matrix[9][21],2,"add_typeinfo_to_matrix bottom first bit")
+assert_equal(matrix[9][18],-2,"add_typeinfo_to_matrix bottom fourth bit")
+assert_equal(matrix[9][6],-2,"add_typeinfo_to_matrix bottom tenth bit")
+assert_equal(matrix[1][9],2,"add_typeinfo_to_matrix left first bit")
+assert_equal(matrix[4][9],-2,"add_typeinfo_to_matrix left fourth bit")
+assert_equal(matrix[21][9],-2,"add_typeinfo_to_matrix right last bit")
+
+local matrix_v2 = new_matrix(25)
+qrcode.add_position_detection_patterns(matrix_v2)
+qrcode.add_timing_pattern(matrix_v2)
+qrcode.add_alignment_pattern(matrix_v2)
+assert_equal(matrix_v2[19][19],2,"add_alignment_pattern center")
+assert_equal(matrix_v2[18][19],-2,"add_alignment_pattern inner ring vertical")
+assert_equal(matrix_v2[19][18],-2,"add_alignment_pattern inner ring horizontal")
+assert_equal(matrix_v2[17][19],2,"add_alignment_pattern outer ring vertical")
+assert_equal(matrix_v2[21][21],2,"add_alignment_pattern outer ring diagonal")
+assert_equal(matrix_v2[5][7],2,"add_alignment_pattern keep positioning pattern")
+
+local matrix_v7 = new_matrix(45)
+qrcode.add_version_information(matrix_v7,7)
+assert_equal(matrix_v7[1][37],2,"add_version_information bottom left ones")
+assert_equal(matrix_v7[5][35],2,"add_version_information bottom left center")
+assert_equal(matrix_v7[37][1],2,"add_version_information top right ones")
+assert_equal(matrix_v7[36][3],2,"add_version_information top right middle")
+assert_equal(matrix_v7[35][1],-2,"add_version_information top right zeros")
+
+local prepared_data = qrcode.prepare_matrix_with_mask(1,1,-1)
+qrcode.add_data_to_matrix(prepared_data,"10101010",-1)
+assert_equal(prepared_data[21][21],1,"add_data_to_matrix first bit")
+assert_equal(prepared_data[20][21],-1,"add_data_to_matrix second bit")
+assert_equal(prepared_data[21][20],1,"add_data_to_matrix third bit")
+assert_equal(prepared_data[20][20],-1,"add_data_to_matrix fourth bit")
+
+local prepared_masked = qrcode.prepare_matrix_with_mask(1,1,0)
+qrcode.add_data_to_matrix(prepared_masked,"10101010",0)
+assert_equal(qrcode.calculate_penalty(prepared_masked),567,"calculate_penalty sample")
+
+hello_world_version, hello_world_ec, hello_world_modebits, hello_world_mode, hello_world_lenbits = qrcode.get_version_eclevel_mode_bistringlength(str)
+hello_world_arranged = hello_world_modebits .. hello_world_lenbits .. qrcode.encode_data(str, hello_world_mode)
+hello_world_arranged = qrcode.add_pad_data(hello_world_version,hello_world_ec,hello_world_arranged)
+hello_world_arranged = qrcode.arrange_codewords_and_calculate_ec(hello_world_version,hello_world_ec,hello_world_arranged)
+hello_world_arranged = hello_world_arranged .. string.rep("0", qrcode.remainder[hello_world_version])
+tab, hello_world_penalty = qrcode.get_matrix_and_penalty(hello_world_version,hello_world_ec,hello_world_arranged,0)
+assert_equal(#tab,21,"get_matrix_and_penalty size")
+assert_equal(hello_world_penalty,344,"get_matrix_and_penalty penalty")
 
 
 -------------------
