@@ -627,14 +627,11 @@ local function arrange_codewords_and_calculate_ec(version,ec_level,data)
 	local size_datablock_bytes, size_ecblock_bytes
 	local datablocks = {}
 	local final_ecblocks = {}
-	local count = 1
 	local pos = 0
-	local cpty_ec_bits = 0
 	for i=1,#blocks/2 do
+		size_datablock_bytes = blocks[2*i][2]
+		size_ecblock_bytes   = blocks[2*i][1] - size_datablock_bytes
 		for _=1,blocks[2*i - 1] do
-			size_datablock_bytes = blocks[2*i][2]
-			size_ecblock_bytes   = blocks[2*i][1] - blocks[2*i][2]
-			cpty_ec_bits = cpty_ec_bits + size_ecblock_bytes * 8
 			datablocks[#datablocks + 1] = sub(data, pos * 8 + 1,( pos + size_datablock_bytes)*8)
 			local tmp_tab = calculate_error_correction(datablocks[#datablocks],size_ecblock_bytes)
 			local tmp_str = {}
@@ -643,35 +640,31 @@ local function arrange_codewords_and_calculate_ec(version,ec_level,data)
 			end
 			final_ecblocks[#final_ecblocks + 1] = concat(tmp_str)
 			pos = pos + size_datablock_bytes
-			count = count + 1
 		end
 	end
+
+	-- Weave the data blocks. When there are multiple block sizes, the final data stream looks like:
+	-- b1's 1st byte, b2's 1st byte, (b3's 1st byte, ...)
+	-- b1's 2nd byte, b2's 2nd byte, (b3's 2nd byte, ...)
+	-- b1's 3rd byte, ...
 	local arranged_data = {}
-	local arranged_length = 0
-	pos = 1
-	while arranged_length < #data do
-		for i=1,#datablocks do
-			if pos < #datablocks[i] then
-				arranged_data[#arranged_data + 1] = sub(datablocks[i],pos, pos + 7)
-				arranged_length = arranged_length + 8
-			end
+	local maxBlockLen = 0
+	for i = 1, #datablocks do maxBlockLen = max(maxBlockLen, #datablocks[i]) end
+	for p = 1, maxBlockLen, 8 do
+		for i = 1, #datablocks do
+			arranged_data[#arranged_data + 1] = sub(datablocks[i], p, p + 7)
 		end
-		pos = pos + 8
 	end
-	-- ec
-	local arranged_ec = {}
-	local arranged_ec_length = 0
-	pos = 1
-	while arranged_ec_length < cpty_ec_bits do
-		for i=1,#final_ecblocks do
-			if pos < #final_ecblocks[i] then
-				arranged_ec[#arranged_ec + 1] = sub(final_ecblocks[i],pos, pos + 7)
-				arranged_ec_length = arranged_ec_length + 8
-			end
+
+	-- Same for EC blocks
+	maxBlockLen = 0
+	for i = 1, #final_ecblocks do maxBlockLen = max(maxBlockLen, #final_ecblocks[i]) end
+	for p = 1, maxBlockLen, 8 do
+		for i = 1, #final_ecblocks do
+			arranged_data[#arranged_data + 1] = sub(final_ecblocks[i], p, p + 7)
 		end
-		pos = pos + 8
 	end
-	return concat(arranged_data) .. concat(arranged_ec)
+	return concat(arranged_data)
 end
 
 
