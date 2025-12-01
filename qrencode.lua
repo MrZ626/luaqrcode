@@ -53,41 +53,36 @@ local byte,sub,rep=string.byte,string.sub,string.rep
 local gsub,match,format=string.gsub,string.match,string.format
 local concat = table.concat
 
--- Build a fast xor helper that stays compatible across Lua versions.
--- We precompute a 256x256 lookup table once at load time using a portable
--- arithmetic xor; the hot path is then a constant-time table lookup without
--- requiring native bitwise operators or external bit libraries.
--- Slow but portable xor used only while populating the lookup table if no native op exists.
-local function slow_xor(a,b)
-	local result = 0
-	local bitval = 1
-	while a > 0 or b > 0 do
-		if (a % 2) ~= (b % 2) then
-			result = result + bitval
-		end
-		a = floor(a / 2)
-		b = floor(b / 2)
-		bitval = bitval * 2
-	end
-	return result
-end
 
 local xor_lookup = {}
 do
+	-- Build a fast xor helper that stays compatible across Lua versions.
+	-- We precompute a 256x256 lookup table once at load time using a portable
+	-- arithmetic xor; the hot path is then a constant-time table lookup without
+	-- requiring native bitwise operators or external bit libraries.
+	-- Slow but portable xor used only while populating the lookup table if no native op exists.
+	local function slow_xor(a,b)
+		local result = 0
+		local bitval = 1
+		while a > 0 or b > 0 do
+			if (a % 2) ~= (b % 2) then
+				result = result + bitval
+			end
+			a = floor(a / 2)
+			b = floor(b / 2)
+			bitval = bitval * 2
+		end
+		return result
+	end
+
 	-- Always build a 256x256 table once at load time; avoids any reliance on bitwise operators.
-	local fn = slow_xor
 	for i=0,255 do
 		local row = {}
 		for j=0,255 do
-			row[j] = fn(i,j)
+			row[j] = slow_xor(i,j)
 		end
 		xor_lookup[i] = row
 	end
-end
-
--- Calculate bitwise xor of bytes m and n. 0 <= m,n <= 255.
-local function bit_xor(m,n)
-	return xor_lookup[m][n]
 end
 
 local decToHexTable={
@@ -504,7 +499,7 @@ local function calculate_error_correction(data,num_ec_codewords)
 		end
 
 		for i=highest_exponent,0,-1 do
-			mp_int[i] = bit_xor(alpha_int[gp_alpha[i]],mp_int[i])
+			mp_int[i] = xor_lookup[alpha_int[gp_alpha[i]]][mp_int[i]]
 		end
 		-- remove leading 0's
 		for i=highest_exponent,num_ec_codewords,-1 do
@@ -1175,7 +1170,7 @@ if testing then
 		arrange_codewords_and_calculate_ec = arrange_codewords_and_calculate_ec,
 		calculate_error_correction = calculate_error_correction,
 		convert_bitstring_to_bytes = convert_bitstring_to_bytes,
-		bit_xor = bit_xor,
+		xor_lookup = xor_lookup,
 		calculate_penalty = calculate_penalty,
 		get_matrix_and_penalty = get_matrix_and_penalty,
 	}
